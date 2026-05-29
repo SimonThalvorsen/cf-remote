@@ -1,4 +1,4 @@
-# cf-remote
+# cf-remote 2
 
 `cf-remote` is a tool to deploy CFEngine.
 It works by contacting remote hosts with SSH and using `ssh` / `scp` to copy files and run commands.
