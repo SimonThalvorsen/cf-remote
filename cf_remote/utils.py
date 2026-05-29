@@ -339,3 +339,46 @@ def has_unescaped_character(string, char):
             return True
         previous = current
     return False
+
+
+def migrate_config_paths():
+    override_dir = os.getenv("CF_REMOTE_DIR")
+    # Set manually by user, assume they want to keep it like that
+    if override_dir:
+        return
+
+    old_dir = os.path.expanduser("~/.cfengine/cf-remote/")
+    conf_dir = os.path.expanduser("~/.config/cfengine/cf-remote/")
+    cache_dir = os.path.expanduser("~/.cache/cfengine/cf-remote/")
+    if os.path.exists(conf_dir) and os.path.exists(cache_dir):
+        return  # Migration has already occured
+    if not os.path.exists(os.path.dirname(old_dir)):
+        return  # nothing to migrate
+    shutil.copytree(
+        old_dir,
+        conf_dir,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("json", "packages"),
+    )
+    print("config-files has been moved to '%s'" % conf_dir)
+
+    shutil.copytree(
+        os.path.join(old_dir, "json"),
+        os.path.join(cache_dir, "json"),
+        dirs_exist_ok=True,
+    )
+    shutil.copytree(
+        os.path.join(old_dir, "packages"),
+        os.path.join(cache_dir, "packages"),
+        dirs_exist_ok=True,
+    )
+    print("cache-files has been moved to '%s'" % cache_dir)
+
+    choice = input("Remove directory %s ? [y/N]" % old_dir).strip().lower() or "n"
+    if choice in "yes":
+        shutil.rmtree(old_dir)
+        print("%s has been removed" % old_dir)
+        return
+    if choice in "no":
+        return
+    print("Unknown input.")
