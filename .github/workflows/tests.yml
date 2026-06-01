@@ -33,16 +33,16 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Lint with flake8
         run: |
-          flake8 . --ignore=E203,W503,E722,E731 --max-complexity=100 --max-line-length=160
+          python -m flake8 . --ignore=E203,W503,E722,E731 --max-complexity=100 --max-line-length=160
       - name: Lint with pyright (type checking)
         run: |
-          pyright cf_remote
+          python -m pyright cf_remote
       - name: Lint with pyflakes
         run: |
-          pyflakes cf_remote
+          python -m pyflakes cf_remote
       - name: Test with pytest
         run: |
-          pytest
+          python -m pytest
       - name: Install
         run: |
           python setup.py sdist bdist_wheel
