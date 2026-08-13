@@ -3,12 +3,14 @@ import fcntl
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import json
 import tempfile
 from collections import OrderedDict
 from cf_remote.utils import (
     is_different_checksum,
+    read_json,
     write_json,
     mkdir,
 )
@@ -22,6 +24,9 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 # The delay is doubled between each attempt.
 ATTEMPTS = 3
 DELAY = 2
+
+# Seconds before cached JSON is considered stale and fetched again.
+MAX_AGE = 3600
 
 
 def is_transient_error(error: BaseException) -> bool:
@@ -58,14 +63,51 @@ def urlopen_retry(url: str, attempts: int = ATTEMPTS, delay: float = DELAY):
             delay *= 2
 
 
-def get_json(url):
-    with urlopen_retry(url) as r:
-        assert r.status >= 200 and r.status < 300
-        data = json.loads(r.read().decode(), object_pairs_hook=OrderedDict)
+def json_cache_path(url: str) -> str:
+    # The basename alone is not unique, enterprise and community both have a
+    # releases.json, so name the file after the whole path of the URL.
+    filename = urllib.parse.urlparse(url).path.strip("/").replace("/", "_")
+    return os.path.join(cf_remote_dir("json", in_cache=True), filename)
 
-    filename = os.path.basename(url)
-    dir = cf_remote_dir("json", in_cache=True)
-    path = os.path.join(dir, filename)
+
+def is_cache_recent(path: str, max_age: int) -> bool:
+    """Whether the file was written less than max_age seconds ago"""
+
+    try:
+        return time.time() - os.path.getmtime(path) < max_age
+    except OSError:
+        return False
+
+
+def get_json(url: str, max_age: int = MAX_AGE):
+    """Get JSON from a URL, using a cached copy when possible
+
+    A cached copy younger than max_age seconds is used without contacting the
+    server at all. An older copy is only used if the server cannot be reached
+    due to a transient error, since stale release data beats no release data.
+    """
+
+    path = json_cache_path(url)
+
+    if is_cache_recent(path, max_age):
+        cached = read_json(path)
+        if cached is not None:
+            log.debug("Using recently cached '{}'".format(path))
+            return cached
+
+    try:
+        with urlopen_retry(url) as r:
+            assert r.status >= 200 and r.status < 300
+            data = json.loads(r.read().decode(), object_pairs_hook=OrderedDict)
+    except Exception as e:
+        cached = read_json(path)
+        if cached is None or not is_transient_error(e):
+            raise
+        log.warning(
+            "Failed to fetch '{}' ({}), falling back on '{}'".format(url, e, path)
+        )
+        return cached
+
     log.debug("Saving '{}' to '{}'".format(url, path))
     write_json(path, data)
 
