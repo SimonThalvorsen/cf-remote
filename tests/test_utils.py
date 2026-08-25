@@ -1,6 +1,6 @@
 import os
 import shutil
-from multiprocessing import Pool
+import multiprocessing
 from cf_remote.utils import has_unescaped_character, parse_envfile, copy_file
 
 
@@ -73,7 +73,12 @@ def test_copy_file():
 
     num_processes = 10
 
-    with Pool(num_processes) as copy_pool:
+    # Use "spawn" instead of the platform-default "fork": forking a process
+    # that has other threads running (e.g. coverage's own writer thread) can
+    # deadlock intermittently if a lock is held mid-fork. Spawn starts each
+    # worker from a clean interpreter and avoids that.
+    ctx = multiprocessing.get_context("spawn")
+    with ctx.Pool(num_processes) as copy_pool:
         copy_pool.map(copy_file_with_args, [(src, dest) for _ in range(num_processes)])
 
     content = None

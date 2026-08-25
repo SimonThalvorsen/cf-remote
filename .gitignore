@@ -5,5 +5,11 @@ dist
 /cf_remote.egg-info/
 /venv
 /.venv
+log
 __pycache__/
 **/.DS_STORE
+
+# coverage
+.coverage.*
+.coverage
+coverage.xml

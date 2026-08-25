@@ -1,4 +1,4 @@
-.PHONY: default format lint install check venv
+.PHONY: default format lint install check venv coverage
 
 default: check
 
@@ -20,3 +20,15 @@ install:
 
 check: venv format lint
 	uv run pytest
+
+export COVERAGE_PROCESS_START = $(PWD)/.coveragerc
+export COVERAGE_FILE = $(PWD)/.coverage
+coverage:
+	uv run coverage erase
+	uv run coverage run --parallel-mode -m pytest
+	uv run bash tests/shell/all.sh
+	uv run bash tests/docker/0*.sh
+	uv run bash tests/unsafe/0*.sh
+	uv run coverage combine
+	uv run coverage report --fail-under=40
+	uv run coverage xml
