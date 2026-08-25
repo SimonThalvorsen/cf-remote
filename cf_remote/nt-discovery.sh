@@ -62,7 +62,9 @@ run_command "cat /var/cfengine/policy_server.dat" "POLICY_SERVER"
 # cf-hub
 
 cfhub_path=$(cf_path "cf-hub")
-run_command "$cfhub_path --version" "CFHUB" "Cannot find cf-hub"
+
+run_command "command -v $cfhub_path" "CFHUB_PATH" "Cannot find cf-hub"
+run_command "$cfhub_path --version" "CFHUB_VERSION"
 
 # packages
 
