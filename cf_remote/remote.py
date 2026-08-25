@@ -288,8 +288,10 @@ def get_info(host, *, users=None, connection=None):
         data["agent"] = discovery.get("NTD_CFAGENT_PATH")
         data["policy_server"] = discovery.get("NTD_POLICY_SERVER")
         data["agent_version"] = parse_version(discovery.get("NTD_CFAGENT_VERSION"))
-        if discovery.get("NTD_CFHUB"):
+        hub_path = discovery.get("NTD_CFHUB_PATH")
+        if hub_path:
             data["role"] = "hub"
+            data["hub"] = hub_path
         elif discovery.get("NTD_CFAGENT_PATH"):
             data["role"] = "client"
         else:
