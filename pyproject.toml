@@ -43,4 +43,5 @@ dev = [
     "pyflakes>=3.2.0",
     "pyright>=1.1.390",
     "pytest>=8.3.4",
+    "coverage; python_version >= '3.10'",
 ]
